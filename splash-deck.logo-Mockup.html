@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoodVideo x SPLASH | Retro Neon Editorial Deck</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Oswald:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        /* --- CSS VARIABLES: Retro Neon TV Palette --- */
+        :root {
+            --pink: #F472B6;
+            --pink-hot: #EC4899;
+            --pink-glow: #F9A8D4;
+            --gold: #D4A853;
+            --black: #0A0A0A;
+            --black-card: #111111;
+            --white: #F5F5F5;
+            --gray: #888888;
+            --border: #222222;
+            --ease: cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        /* --- RESET & BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--black);
+            color: var(--white);
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        ::selection {
+            background-color: var(--pink-hot);
+            color: var(--black);
+            text-shadow: none;
+        }
+
+        /* --- 3D CANVAS (Deepest Layer: -10) --- */
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -10;
+            pointer-events: none;
+            filter: contrast(1.1);
+        }
+
+        /* --- EDITORIAL SPINES --- */
+        .spine {
+            position: fixed;
+            top: 0; bottom: 0;
+            width: 1px;
+            background: var(--border);
+            z-index: 5;
+        }
+        .spine-1 { left: 5vw; }
+        .spine-2 { right: 5vw; }
+
+        /* --- SUBMERGED TEXT LAYER (Z-INDEX 10) --- */
+        /* Text sits below the glass/scanlines */
+        .submerged-text {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* --- BACKGROUND FX LAYER (Z-INDEX 50) --- */
+        /* Creates the "CRT Glass". Covers canvas and submerged text, but images break through. */
+        .vhs-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 50; 
+            pointer-events: none;
+            mix-blend-mode: overlay;
+        }
+
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);
+            opacity: 0.8;
+        }
+
+        .vignette {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 30%, rgba(10, 10, 10, 0.95) 100%);
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.9);
+        }
+
+        .tv-static {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            animation: static-dance 0.15s steps(2) infinite;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes static-dance {
+            0% { transform: translate(0,0) }
+            50% { transform: translate(-1%, 1%) }
+            100% { transform: translate(1%, -1%) }
+        }
+
+        .film-burn {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
+                        radial-gradient(circle at 10% 80%, rgba(212, 168, 83, 0.1) 0%, transparent 50%);
+            opacity: 0;
+            animation: film-flash 10s infinite alternate;
+            mix-blend-mode: screen;
+        }
+
+        @keyframes film-flash {
+            0%, 90%, 100% { opacity: 0; }
+            92% { opacity: 0.6; }
+            94% { opacity: 0.2; }
+            96% { opacity: 0.8; }
+        }
+
+        /* --- IMAGES (Z-INDEX 100+) PROTECTED FROM FX --- */
+        .clean-img {
+            position: relative;
+            z-index: 100;
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+            display: block;
+            border: 1px solid var(--border);
+            box-shadow: 12px 12px 0px rgba(0,0,0,0.6);
+            transition: transform 0.4s var(--ease), box-shadow 0.4s var(--ease), filter 0.4s var(--ease), border-color 0.4s var(--ease);
+            filter: grayscale(15%) contrast(1.1);
+            background: var(--black-card);
+        }
+
+        .clean-img:hover {
+            transform: translate(-4px, -4px);
+            box-shadow: 16px 16px 0px var(--pink-hot);
+            border-color: var(--pink-hot);
+            filter: grayscale(0%) contrast(1.1);
+            z-index: 120;
+        }
+
+        /* --- TYPOGRAPHY & NEON --- */
+        .brutal-title {
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            line-height: 0.9;
+            letter-spacing: -0.02em;
+        }
+
+        .editorial-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .mono-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .vertical-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            color: var(--pink-glow);
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: clamp(1rem, 1.1vw, 1.15rem);
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+
+        .text-outline {
+            color: transparent;
+            -webkit-text-stroke: 1.5px var(--pink-hot);
+        }
+
+        .neon-pink {
+            color: var(--pink-glow);
+            text-shadow: 0 0 5px var(--pink-hot), 0 0 15px var(--pink);
+        }
+        .neon-gold {
+            color: var(--gold);
+            text-shadow: 0 0 5px rgba(212, 168, 83, 0.8), 0 0 15px rgba(212, 168, 83, 0.4);
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 5vw;
+            position: relative;
+        }
+
+        .grid-12 {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 2rem;
+        }
+
+        .col-1 { grid-column: span 1; }
+        .col-4 { grid-column: span 4; }
+        .col-5 { grid-column: span 5; }
+        .col-6 { grid-column: span 6; }
+        .col-7 { grid-column: span 7; }
+        .col-10 { grid-column: span 10; }
+        .col-11 { grid-column: span 11; }
+
+        section {
+            padding: 8rem 0;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0; width: 100%;
+            padding: 1.5rem 5vw;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2000;
+            background: linear-gradient(to bottom, rgba(10, 10, 10, 0.95) 0%, transparent 100%);
+        
+            isolation: isolate;}
+
+        .logo {
+            height: 36px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 0 5px rgba(236, 72, 153, 0.5)); display: block;
+        }
+
+/* --- LOGO GLITCH (Masked to logo pixels) --- */
+.logo-wrap{
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+            overflow: hidden;
+    /* Provide a mask source for pseudo-elements (set from HTML/JS if needed) */
+    --logo-mask: none;
+}
+
+.logo-wrap .logo{
+    position: relative;
+    z-index: 1;
+    display: block;
+}
+
+/* Static overlay, masked to the logo silhouette */
+.logo-wrap::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 2;
+
+    /* TV static noise */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+    mix-blend-mode: screen;
+    filter: contrast(1.6) brightness(1.2);
+
+    /* Mask so ONLY logo pixels are affected */
+    -webkit-mask-image: var(--logo-mask);
+    mask-image: var(--logo-mask);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    H0% 100%;
+    H0% 100%;
+}
+
+/* STATIC state (1–2s bursts) */
+.logo-wrap.is-static::after{
+    opacity: 0.75;
+    animation: logo-static 140ms steps(2) infinite;
+}
+
+/* Small glitch: subtle jitter + mild slice */
+.logo-wrap.is-glitch-sm{
+    animation: logo-jitter-sm 120ms steps(2) infinite;
+}
+.logo-wrap.is-glitch-sm .logo{
+    animation: logo-slice-sm 160ms steps(2) infinite;
+}
+
+/* Big glitch: harder jitter + aggressive slice + brief contrast pop */
+.logo-wrap.is-glitch-lg{
+    animation: logo-jitter-lg 90ms steps(2) infinite;
+}
+.logo-wrap.is-glitch-lg .logo{
+    animation: logo-slice-lg 120ms steps(2) infinite;
+    filter: contrast(1.35) brightness(1.05);
+}
+.logo-wrap.is-glitch-lg::after{
+    opacity: 0.9;
+    filter: contrast(2.0) brightness(1.35);
+}
+
+@keyframes logo-static{
+    0%   { transform: translate(0,0) }
+    25%  { transform: translate(-2px, 1px) }
+    50%  { transform: translate(2px, -1px) }
+    75%  { transform: translate(-1px, -2px) }
+    100% { transform: translate(1px, 2px) }
+}
+
+@keyframes logo-jitter-sm{
+    0%   { transform: translate(0,0) }
+    50%  { transform: translate(1px,0) }
+    100% { transform: translate(0,0) }
+}
+@keyframes logo-jitter-lg{
+    0%   { transform: translate(0,0) }
+    20%  { transform: translate(2px,-1px) }
+    40%  { transform: translate(-2px,1px) }
+    60%  { transform: translate(1px,2px) }
+    80%  { transform: translate(-1px,-2px) }
+    100% { transform: translate(0,0) }
+}
+
+@keyframes logo-slice-sm{
+    0%   { clip-path: inset(0 0 0 0); }
+    35%  { clip-path: inset(12% 0 68% 0); }
+    70%  { clip-path: inset(58% 0 18% 0); }
+    100% { clip-path: inset(0 0 0 0); }
+}
+@keyframes logo-slice-lg{
+    0%   { clip-path: inset(0 0 0 0); transform: translateX(0); }
+    20%  { clip-path: inset(8% 0 72% 0); transform: translateX(3px); }
+    40%  { clip-path: inset(42% 0 36% 0); transform: translateX(-4px); }
+    60%  { clip-path: inset(70% 0 10% 0); transform: translateX(4px); }
+    80%  { clip-path: inset(20% 0 55% 0); transform: translateX(-3px); }
+    100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .logo-wrap.is-static,
+    .logo-wrap.is-static::after,
+    .logo-wrap.is-glitch-sm,
+    .logo-wrap.is-glitch-sm .logo,
+    .logo-wrap.is-glitch-lg,
+    .logo-wrap.is-glitch-lg .logo{
+        animation: none !important;
+    }
+    .logo-wrap::after{ opacity: 0 !important; }
+}
+
+        
+        @media (max-width: 1200px) {
+            .moodboard { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 25vw; }
+        }
+        @media (max-width: 1024px) {
+            .grid-12 { display: flex; flex-direction: column; gap: 3rem; }
+            .col-1, .col-4, .col-5, .col-6, .col-7, .col-10, .col-11 { grid-column: span 12; }
+            .brutal-grid { grid-template-columns: 1fr; border-right: 1px solid var(--border); }
+            .script-box { margin: 1rem 0 0 0 !important; width: 100% !important; }
+            .vertical-text { writing-mode: horizontal-tb; transform: none; margin-bottom: 1rem; }
+            .spine { display: none; }
+        }
+        @media (max-width: 768px) {
+            .moodboard { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 50vw; }
+            .moodboard img { grid-column: span 1 !important; grid-row: span 1 !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="spine spine-1"></div>
+    <div class="spine spine-2"></div>
+
+    <div class="vhs-overlay">
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+        <div class="tv-static"></div>
+        <div class="film-burn"></div>
+    </div>
+
+    <nav>
+        <span class="logo-wrap" style="--logo-mask: url('https://images.squarespace-cdn.com/content/v1/67ff365778fcff16327e3d34/8ec8ca26-4d05-4747-a785-c33c5cb0f8fb/WEBSITE+MENU+-+LOGO.png?format=1500w');">
+            <img src="https://images.squarespace-cdn.com/content/v1/67ff365778fcff16327e3d34/8ec8ca26-4d05-4747-a785-c33c5cb0f8fb/WEBSITE+MENU+-+LOGO.png?format=1500w"
+            alt="GoodVideo" class="logo">
+        </span>
+        <div class="mono-meta neon-pink rec-indicator">
+            <div class="rec-dot"></div>
+            REC // 2026 DECK
+        </div>
+    </nav>
+
+    <section class="hero container grid-12">
+        <div class="col-1 submerged-text" style="display: flex; align-items: flex-end; padding-bottom: 1rem;">
+            <div class="vertical-text reveal">VOL. 01 / 2026 DECK</div>
+        </div>
+        <div class="col-5 submerged-text reveal delay-1" style="align-self: center;">
+            <div class="mono-meta neon-gold" style="margin-bottom: 2rem;">CONFIDENTIAL / 3 CAMPAIGNS</div>
+            <h1 class="brutal-title" style="font-size: clamp(4.5rem, 10vw, 12rem); color: var(--white);">HOW WE<br>MAKE A</h1>
+            <h1 class="brutal-title text-outline neon-pink" style="font-size: clamp(4.5rem, 10vw, 12rem); margin-top: -2vw; margin-left: 2vw;">SPLASH</h1>
+            <div class="editorial-serif neon-pink" style="font-size: clamp(1.5rem, 3vw, 2.5rem); font-style: italic; margin-top: 1rem; margin-left: 2vw;">
+                Kitchen &middot; Bath &middot; Home
+            </div>
+        </div>
+        <div class="col-6 reveal delay-2">
+            <img src="https://i.postimg.cc/Jn9Ph7Fq/img-006.webp" alt="Splash Showroom" class="clean-img" style="aspect-ratio: 4/5;">
+        </div>
+    </section>
+
+    <section class="container grid-12" id="overview">
+        <div class="col-1 submerged-text">
+            <div class="vertical-text reveal">01 / OVERVIEW</div>
+        </div>
+        
+        <div class="col-6 submerged-text reveal delay-1">
+            <h2 class="brutal-title neon-pink" style="font-size: clamp(3rem, 6vw, 6rem); margin-bottom: 2rem;">A DEFINING<br><span style="color: var(--white); text-shadow: none;">YEAR.</span></h2>
+            <p style="font-weight: 500; color: var(--white);">A new website. A refreshed black and gold identity. A desire to elevate the brand as a luxury, one-stop destination for cabinetry, tile, hardware, and plumbing.</p>
+            <p>For decades, Splash has been trusted for plumbing. But the full story is much bigger. Four showrooms. Thirty tile lines. Nine cabinetry lines. Dozens of premium brands. A state-of-the-art showroom experience.</p>
+            <p>Yet many customers still see only part of what Splash offers.</p>
+        </div>
+        
+        <div class="col-5 submerged-text reveal delay-2" style="border-top: 2px solid var(--gold); padding-top: 2rem;">
+            <div class="mono-meta neon-gold" style="margin-bottom: 1.5rem;">THE OPPORTUNITY IN 2026</div>
+            <ul style="list-style: none; font-family: 'Space Grotesk', sans-serif; color: var(--gray);">
+                <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--pink-hot);">[+]</span> Elevate perception without alienating the middle.</li>
+                <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--pink-hot);">[+]</span> Expand awareness beyond plumbing.</li>
+                <li style="margin-bottom: 1rem; padding-left: 1.5rem; position: relative;"><span style="position: absolute; left: 0; color: var(--pink-hot);">[+]</span> Reinforce that designing here is intentional, guided, and expert-led.</li>
+            </ul>
+            <div class="editorial-serif neon-pink" style="font-size: 2.5rem; font-style: italic; margin-top: 3rem; line-height: 1.1;">Not a walk-in transaction.<br><span style="color: var(--white); text-shadow: none;">A relationship.</span></div>
+        </div>
+    </section>
+
+    <section class="container" id="audience" style="border-bottom: none;">
+        <div class="grid-12 submerged-text">
+            <div class="col-1">
+                <div class="vertical-text reveal">02 / DEMOGRAPHICS</div>
+            </div>
+            <div class="col-11 reveal delay-1">
+                <h2 class="brutal-title" style="font-size: clamp(3.5rem, 7vw, 7rem);">TARGET<br><span class="text-outline neon-pink">AUDIENCE</span></h2>
+            </div>
+        </div>
+
+        <div class="brutal-grid reveal delay-2">
+            <div class="brutal-card">
+                <img src="https://i.postimg.cc/cHVXJ1zk/img-009.webp" alt="Design Decision Maker">
+                <div class="brutal-card-content submerged-text">
+                    <div class="brutal-number">01</div>
+                    <div class="tag-mono">AGES 35-65</div>
+                    <h3 class="brutal-title neon-pink" style="font-size: 1.8rem; margin-bottom: 1rem;">THE DESIGN DECISION MAKER</h3>
+                    <p style="font-size: 0.9rem;">Homeowners leading kitchen or bath remodel decisions. Often the aesthetic driver of the project.</p>
+                    <div class="mono-meta" style="color: var(--gold); margin-bottom: 0.5rem;">MOTIVATIONS</div>
+                    <p style="font-size: 0.85rem;">Reflecting taste, balancing beauty w/ function, avoiding costly mistakes.</p>
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <p class="mono-meta" style="color: var(--pink-glow); margin: 0; font-size: 0.7rem;">MSG: Knowledgeable partner who organizes & guides.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brutal-card">
+                <img src="https://i.postimg.cc/PxB2qf76/img-010.webp" alt="Power Professional">
+                <div class="brutal-card-content submerged-text">
+                    <div class="brutal-number">02</div>
+                    <div class="tag-mono">HIGH-END</div>
+                    <h3 class="brutal-title neon-pink" style="font-size: 1.8rem; margin-bottom: 1rem;">THE POWER PROFESSIONAL</h3>
+                    <p style="font-size: 0.9rem;">Doctors, lawyers, business owners, and established families investing in high-quality renovations.</p>
+                    <div class="mono-meta" style="color: var(--gold); margin-bottom: 0.5rem;">MOTIVATIONS</div>
+                    <p style="font-size: 0.85rem;">Premium brands & craft, efficiency, trusted expertise without ego.</p>
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <p class="mono-meta" style="color: var(--pink-glow); margin: 0; font-size: 0.7rem;">MSG: Splash delivers luxury without intimidation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brutal-card">
+                <img src="https://i.postimg.cc/FR2DKF6W/img-011.webp" alt="Design Community">
+                <div class="brutal-card-content submerged-text">
+                    <div class="brutal-number">03</div>
+                    <div class="tag-mono">TRADE PARTNERS</div>
+                    <h3 class="brutal-title neon-pink" style="font-size: 1.8rem; margin-bottom: 1rem;">THE DESIGN COMMUNITY</h3>
+                    <p style="font-size: 0.9rem;">Interior designers, architects, and trade partners seeking product depth and collaboration.</p>
+                    <div class="mono-meta" style="color: var(--gold); margin-bottom: 0.5rem;">MOTIVATIONS</div>
+                    <p style="font-size: 0.85rem;">Extensive product lines, reliable sourcing, professional partnership.</p>
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <p class="mono-meta" style="color: var(--pink-glow); margin: 0; font-size: 0.7rem;">MSG: Create instant credibility & connection.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section style="background: var(--black-card); padding: 8rem 0; margin: 4rem 0; position: relative; border-top: 1px solid var(--pink-hot); border-bottom: 1px solid var(--pink-hot); box-shadow: 0 0 40px rgba(236, 72, 153, 0.15);">
+        <div class="container grid-12">
+            <div class="col-6 reveal">
+                <img src="https://i.postimg.cc/HxfBLWNP/img-012.webp" alt="Blueprint" class="clean-img" style="aspect-ratio: 1/1; border-color: var(--gold);">
+            </div>
+            <div class="col-6 reveal delay-1 submerged-text" style="align-self: center; padding-left: 2rem;">
+                <div class="mono-meta neon-pink" style="font-weight: bold; margin-bottom: 2rem; display: inline-block;">ELEVATION STRATEGY</div>
+                <h2 class="brutal-title" style="font-size: clamp(2.5rem, 4vw, 4rem); max-width: 900px; line-height: 1; color: var(--white); margin-bottom: 3rem;">REPOSITION SPLASH AS PITTSBURGH'S PREMIUM DESIGN DESTINATION.</h2>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem; border-top: 1px dashed var(--border); padding-top: 2rem;">
+                    <p style="color: var(--white); font-weight: 500;">The creative strategy is built on trust, clarity, and confidence. We translate a cultural moment into something that feels human, timely, and real.</p>
+                    <p style="color: var(--gray); font-weight: 500;">Instead of getting lost in policy language, the story stays focused on what matters: making the right choice for your future, with guidance from true experts.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="border-bottom: none; padding-bottom: 2rem;">
+        <h1 class="brutal-title reveal submerged-text" style="font-size: clamp(4rem, 12vw, 12rem); text-align: center;">THE<br><span class="text-outline neon-pink">CONCEPTS</span></h1>
+    </section>
+
+    <section class="container" style="padding-top: 0; border-bottom: none; margin-bottom: 6rem;">
+        <div class="grid-12">
+            <div class="col-1 submerged-text">
+                <div class="vertical-text reveal">SCENE / 01</div>
+            </div>
+            
+            <div class="col-6 reveal delay-1">
+                <img src="https://i.postimg.cc/tTL2gRcM/img-013.webp" alt="Woman Coffee Wide" class="clean-img" style="aspect-ratio: 16/9; margin-bottom: 3rem;">
+                
+                <div class="submerged-text">
+                    <div class="mono-meta neon-gold" style="margin-bottom: 1rem;">CONCEPT 01</div>
+                    <h2 class="brutal-title neon-pink" style="font-size: clamp(2.5rem, 4vw, 4rem); margin: 0;">MAKE YOURSELF<br>AT HOME</h2>
+                    <p class="editorial-serif" style="font-size: 1.5rem; color: var(--gray); margin-bottom: 2rem; font-style: italic;">Where design becomes personal.</p>
+                    
+                    <p>A showroom is designed to help you imagine what's possible. But the best showrooms do more. They make you feel at home. In this campaign, we visualize that feeling literally.</p>
+                    <p>We open tight on a moment that feels like home. A man in a bath. A woman with morning coffee. Then the camera slowly pulls back. And we realize, they're not home. They're in the busy Splash showroom.</p>
+                    
+                    <div style="margin-top: 2rem; border-left: 2px solid var(--pink-hot); padding-left: 1rem;">
+                        <div class="mono-meta" style="margin-bottom: 0.5rem; color: var(--white);">WHY IT WORKS</div>
+                        <p style="font-size: 0.85rem; margin: 0;">The slow reveal does the selling without trying to. It turns the showroom into a place of ownership. Clean frames, long breaths, minimal language.</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 2rem; margin-top: 3rem;">
+                    <img src="https://i.postimg.cc/PxB2qf7B/img-016.webp" alt="Coffee Alt" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                    <img src="https://i.postimg.cc/SswDKQP3/img-017.webp" alt="Dinner Alt" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                </div>
+            </div>
+
+            <div class="col-5 reveal delay-2">
+                <img src="https://i.postimg.cc/NMWp0GnV/img-015.webp" alt="Man in tub" class="clean-img" style="aspect-ratio: 4/5;">
+                
+                <div class="script-box" style="margin-top: -15%; margin-left: -20%; width: 120%;">
+                    <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; font-weight: 700; color: var(--pink-glow);">SCENE: "BATH TIME"</div>
+                    <p><strong>WE OPEN</strong> tight on a man sitting in a bathtub. Calm. Comfortable. Still. We hear faint showroom ambience. Footsteps.</p>
+                    <p>The camera slowly pulls back. Revealing the truth. He is not in a home. He is sitting in a bathtub on display inside the <strong>SPLASH SHOWROOM</strong>.</p>
+                    
+                    <div class="char-name">TEXT ON SCREEN</div>
+                    <div class="dialogue">Make yourself at home.<br>[Beat]<br>Just not here.</div>
+                    
+                    <div class="char-name">VO (CALM)</div>
+                    <div class="dialogue">Splash: Kitchen and Bath. Design you can see yourself in.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="padding-top: 0; border-bottom: none; margin-bottom: 6rem;">
+        <div class="grid-12">
+            <div class="col-1 submerged-text">
+                <div class="vertical-text reveal">SCENE / 02</div>
+            </div>
+            
+            <div class="col-6 reveal delay-2 reverse-mobile">
+                <img src="https://i.postimg.cc/d1z40QXw/img-019.webp" alt="Kitchen Fight" class="clean-img" style="aspect-ratio: 4/5;">
+                
+                <div class="script-box" style="margin-top: -10%; margin-left: 10%; width: 110%;">
+                    <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; font-weight: 700; color: var(--pink-glow);">SCENE: "THE KITCHEN FIGHT"</div>
+                    <p><strong>WE OPEN</strong> on a couple standing inside a beautiful kitchen display. They smile, relieved.</p>
+                    
+                    <div class="char-name">WIFE</div>
+                    <div class="dialogue">We did it. We found our new kitchen.</div>
+                    
+                    <div class="char-name">HUSBAND</div>
+                    <div class="dialogue">It's just... where's the expresso machine going to go?</div>
+                    
+                    <p style="margin-top: 1rem;">Tension grows. <strong>WE PULL BACK</strong> to REVEAL two Splash designers watching.</p>
+                </div>
+
+                <div style="display: flex; gap: 2rem; margin-top: 4rem;">
+                    <img src="https://i.postimg.cc/k4kf5MZ9/img-020.webp" alt="The Experts" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                    <img src="https://i.postimg.cc/hjHpG4wD/img-021.webp" alt="Bad Decisions" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                </div>
+            </div>
+
+            <div class="col-5 reveal delay-1">
+                <div class="submerged-text">
+                    <div class="mono-meta neon-gold" style="margin-bottom: 1rem;">CONCEPT 02</div>
+                    <h2 class="brutal-title neon-pink" style="font-size: clamp(2.5rem, 4vw, 4rem); margin: 0;">WE'VE SEEN<br>THIS BEFORE</h2>
+                    <p class="editorial-serif" style="font-size: 1.5rem; color: var(--gray); margin-bottom: 2rem; font-style: italic;">Funny, human moments.</p>
+                    
+                    <p>Walking into a kitchen and bath showroom can be intimidating. Suddenly, everyone becomes an expert. People pretend to know what they're doing.</p>
+                    <p>We see couples confidently making questionable decisions. Then, calmly and without judgment, a Splash designer steps in. Not to sell. To help.</p>
+                    
+                    <div style="margin-top: 2rem; border-left: 2px solid var(--pink-hot); padding-left: 1rem; margin-bottom: 4rem;">
+                        <div class="mono-meta" style="margin-bottom: 0.5rem; color: var(--white);">WHY IT WORKS</div>
+                        <p style="font-size: 0.85rem; margin: 0;">It taps into a truth most homeowners feel but rarely say: they're out of their depth. You don't need to have all the answers, because Splash does.</p>
+                    </div>
+                </div>
+
+                <img src="https://i.postimg.cc/76pmLPRj/img-018.webp" alt="Designers Pointing" class="clean-img" style="aspect-ratio: 16/9;">
+            </div>
+        </div>
+    </section>
+
+    <section class="container" style="padding-top: 0; border-bottom: none; margin-bottom: 4rem;">
+        <div class="grid-12">
+            <div class="col-1 submerged-text">
+                <div class="vertical-text reveal">SCENE / 03</div>
+            </div>
+            
+            <div class="col-5 reveal delay-1">
+                <div class="submerged-text">
+                    <div class="mono-meta neon-gold" style="margin-bottom: 1rem;">CONCEPT 03</div>
+                    <h2 class="brutal-title neon-pink" style="font-size: clamp(2.5rem, 4vw, 4rem); margin: 0;">DESIGNED WITH<br>CONFIDENCE</h2>
+                    <p class="editorial-serif" style="font-size: 1.5rem; color: var(--gray); margin-bottom: 2rem; font-style: italic;">Design without the drama.</p>
+                    
+                    <p>Designing a kitchen or bath can leave homeowners feeling... in the weeds. Too many options. We take familiar phrases like "in the weeds," and bring them to life visually.</p>
+                    <p>We see a homeowner surrounded by actual weeds growing up through the floor as they stare at samples. Then Splash steps in. The weeds disappear. The vision clears.</p>
+                    
+                    <div style="margin-top: 2rem; border-left: 2px solid var(--pink-hot); padding-left: 1rem;">
+                        <div class="mono-meta" style="margin-bottom: 0.5rem; color: var(--white);">WHY IT WORKS</div>
+                        <p style="font-size: 0.85rem; margin: 0;">The visual metaphor is instantly relatable. Elevated, not slapstick. It directly addresses a real fear: making an expensive mistake.</p>
+                    </div>
+                </div>
+
+                <img src="https://i.postimg.cc/gj84LFF9/img-023.webp" alt="Reading in Weeds" class="clean-img" style="margin-top: 4rem; aspect-ratio: 4/5;">
+            </div>
+
+            <div class="col-6 reveal delay-2">
+                <img src="https://i.postimg.cc/cCwTtyqP/img-022.webp" alt="Overgrown Kitchen" class="clean-img" style="aspect-ratio: 16/9;">
+                
+                <div class="script-box" style="margin-top: -15%; margin-left: -10%; width: 110%;">
+                    <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; font-weight: 700; color: var(--pink-glow);">SCENE: "IN THE WEEDS"</div>
+                    <p><strong>WE OPEN</strong> on a woman standing in her kitchen. Samples cover the counters. She holds two nearly identical finishes, unsure.</p>
+                    
+                    <div class="char-name">VO</div>
+                    <div class="dialogue">Designing your kitchen should be inspiring. But between the tile, the finishes... it's easy to get caught in the weeds.</div>
+                    
+                    <p>Tall weeds now surround her. She pushes forward, parting the tall grass and emerges into the bright <strong>SPLASH SHOWROOM</strong>.</p>
+                </div>
+
+                <div style="display: flex; gap: 2rem; margin-top: 4rem;">
+                    <img src="https://i.postimg.cc/d3rnZPMb/img-024.webp" alt="Drowning" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                    <img src="https://i.postimg.cc/nrBT9bbx/img-025.webp" alt="Forest" class="clean-img" style="width: 50%; aspect-ratio: 4/3;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="moodboard-section reveal">
+        <div class="submerged-text" style="padding-top: 4rem; padding-bottom: 2rem; text-align: center;">
+            <div class="mono-meta neon-gold" style="margin-bottom: 1rem;">REFERENCE // TONE</div>
+            <h2 class="brutal-title text-outline neon-pink" style="font-size: clamp(3rem, 6vw, 6rem); margin: 0;">VISUAL STYLE</h2>
+        </div>
+        
+        <div class="moodboard">
+            <img src="https://i.postimg.cc/6qnz4JJw/img-026.webp" class="span-2x2" alt="Mood 01" loading="lazy">
+            <img src="https://i.postimg.cc/wMLFR886/img-027.webp" alt="Mood 02" loading="lazy">
+            <img src="https://i.postimg.cc/1XwMVhhy/img-028.webp" class="span-1x2" alt="Mood 03" loading="lazy">
+            <img src="https://i.postimg.cc/Znpjvttb/img-029.webp" class="span-2x1" alt="Mood 04" loading="lazy">
+            <img src="https://i.postimg.cc/przk5bbX/img-030.webp" alt="Mood 05" loading="lazy">
+            <img src="https://i.postimg.cc/mkCV1ffr/img-031.webp" alt="Mood 06" loading="lazy">
+            <img src="https://i.postimg.cc/Vvn40QQv/img-032.webp" class="span-2x2" alt="Mood 07" loading="lazy">
+            <img src="https://i.postimg.cc/RhKGJ55q/img-033.webp" alt="Mood 08" loading="lazy">
+            <img src="https://i.postimg.cc/2yhTLRR1/img-034.webp" alt="Mood 09" loading="lazy">
+            <img src="https://i.postimg.cc/Vvn40QQS/img-035.webp" class="span-1x2" alt="Mood 10" loading="lazy">
+            <img src="https://i.postimg.cc/fym5SnnS/img-036.webp" alt="Mood 11" loading="lazy">
+            <img src="https://i.postimg.cc/fym5Snn0/img-037.webp" class="span-2x1" alt="Mood 12" loading="lazy">
+            <img src="https://i.postimg.cc/QC1SKGG5/img-038.webp" alt="Mood 13" loading="lazy">
+            <img src="https://i.postimg.cc/brkLSccn/img-039.webp" class="span-2x2" alt="Mood 14" loading="lazy">
+            <img src="https://i.postimg.cc/XqdxBSSd/img-040.webp" alt="Mood 15" loading="lazy">
+            <img src="https://i.postimg.cc/XqdxBSSw/img-041.webp" alt="Mood 16" loading="lazy">
+            <img src="https://i.postimg.cc/nrBT9bbq/img-042.webp" alt="Mood 17" loading="lazy">
+            <img src="https://i.postimg.cc/XNCszFZx/img-043.webp" class="span-2x1" alt="Mood 18" loading="lazy">
+        </div>
+    </section>
+
+    <section class="container" id="next-steps" style="border-bottom: none; margin-top: 6rem;">
+        <div class="grid-12">
+            <div class="col-1 submerged-text">
+                <div class="vertical-text reveal">04 / EXECUTION</div>
+            </div>
+            
+            <div class="col-11 reveal delay-1 submerged-text">
+                <h2 class="brutal-title" style="font-size: clamp(4rem, 8vw, 8rem); margin-bottom: 4rem;">NEXT<br><span class="text-outline neon-pink">STEPS</span></h2>
+                
+                <div style="border-top: 2px solid var(--border);">
+                    <div style="display: grid; grid-template-columns: 100px 1fr; padding: 2.5rem 0; border-bottom: 1px solid var(--border);">
+                        <div class="brutal-title neon-gold" style="font-size: 3rem; line-height: 1;">01</div>
+                        <div>
+                            <h3 class="brutal-title neon-pink" style="font-size: 1.5rem; letter-spacing: 0; margin-bottom: 0.5rem;">FINE-TUNE</h3>
+                            <p style="margin: 0; max-width: 600px;">Partner with the Creative Director to fine-tune selected concepts based on strategy.</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 100px 1fr; padding: 2.5rem 0; border-bottom: 1px solid var(--border);">
+                        <div class="brutal-title neon-gold" style="font-size: 3rem; line-height: 1;">02</div>
+                        <div>
+                            <h3 class="brutal-title neon-pink" style="font-size: 1.5rem; letter-spacing: 0; margin-bottom: 0.5rem;">PRE-PRODUCTION</h3>
+                            <p style="margin: 0; max-width: 600px;">Confirm approval to begin commercial development and initiate production paperwork.</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 100px 1fr; padding: 2.5rem 0; border-bottom: 1px solid var(--border);">
+                        <div class="brutal-title neon-gold" style="font-size: 3rem; line-height: 1;">03</div>
+                        <div>
+                            <h3 class="brutal-title neon-pink" style="font-size: 1.5rem; letter-spacing: 0; margin-bottom: 0.5rem;">SIGN OFF</h3>
+                            <p style="margin: 0; max-width: 600px;">Sign off on finalized concepts, scripts, talent, and shoot locations.</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 100px 1fr; padding: 2.5rem 0; border-bottom: 1px solid var(--border);">
+                        <div class="brutal-title neon-gold" style="font-size: 3rem; line-height: 1;">04</div>
+                        <div>
+                            <h3 class="brutal-title neon-pink" style="font-size: 1.5rem; letter-spacing: 0; margin-bottom: 0.5rem;">PRODUCTION</h3>
+                            <p style="margin: 0; max-width: 600px;">Film the commercial and conduct necessary approvals throughout production.</p>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 100px 1fr; padding: 2.5rem 0;">
+                        <div class="brutal-title neon-pink" style="font-size: 3rem; line-height: 1;">05</div>
+                        <div>
+                            <h3 class="brutal-title" style="font-size: 1.5rem; letter-spacing: 0; margin-bottom: 0.5rem; color: var(--white);">LAUNCH</h3>
+                            <p style="margin: 0; max-width: 600px;">Launch your 2026 campaign.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="container submerged-text" style="padding: 6rem 0; text-align: center; border-bottom: none;">
+        <h1 class="brutal-title reveal neon-pink" style="font-size: clamp(4rem, 10vw, 8rem); margin-bottom: 2rem;">THANK YOU</h1>
+        <img src="https://images.squarespace-cdn.com/content/v1/67ff365778fcff16327e3d34/8ec8ca26-4d05-4747-a785-c33c5cb0f8fb/WEBSITE+MENU+-+LOGO.png?format=1500w" alt="GoodVideo Logo" class="logo reveal delay-1" style="height: 30px; width: auto; margin: 0 auto 3rem auto; filter: drop-shadow(0 0 5px rgba(236, 72, 153, 0.5)); display: block;">
+        
+        <div class="mono-meta reveal delay-2 neon-gold" style="margin-bottom: 4rem;">
+            240-422-9117 &nbsp;//&nbsp; MIKE@GOODVIDEO.CO &nbsp;//&nbsp; GOODVIDEO.CO
+        </div>
+        
+        <div class="mono-meta reveal delay-3" style="font-size: 0.65rem; color: var(--gray); max-width: 600px; margin: 0 auto; line-height: 1.8;">
+            &copy; 2026 GOOD VIDEO. PROPRIETARY AND CONFIDENTIAL.<br>
+            USE OF IMAGES DOES NOT IMPLY OWNERSHIP, ILLUSTRATIVE PURPOSES ONLY.
+        </div>
+    </footer>
+
+    <script>
+        // --- Scroll Reveals ---
+        document.addEventListener("DOMContentLoaded", () => {
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                        obs.unobserve(entry.target);
+                    }
+                });
+            }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+
+        // --- Three.js Minimal Retro Neon TV Background ---
+        const canvas = document.getElementById('bg-canvas');
+        const scene = new THREE.Scene();
+        
+        // Deep fade to back
+        scene.fog = new THREE.FogExp2(0x0A0A0A, 0.04);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.5, 10);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false }); 
+        renderer.setClearColor(0x0A0A0A, 1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Synthwave Wireframe Grid
+        const gridGeo = new THREE.PlaneGeometry(150, 150, 40, 40);
+        const gridMat = new THREE.MeshBasicMaterial({ 
+            color: 0xEC4899, // Pink-hot
+            wireframe: true,
+            transparent: true,
+            opacity: 0.2,
+            blending: THREE.AdditiveBlending
+        });
+        const grid = new THREE.Mesh(gridGeo, gridMat);
+        grid.rotation.x = -Math.PI / 2;
+        grid.position.y = -2;
+        scene.add(grid);
+
+        // Abstract Floating Geometries (Pink Glow & Gold)
+        const group = new THREE.Group();
+        const geoTypes = [
+            new THREE.OctahedronGeometry(1, 0),
+            new THREE.TetrahedronGeometry(1, 0)
+        ];
+        
+        for(let i=0; i<15; i++) {
+            const isPink = Math.random() > 0.5;
+            const mat = new THREE.MeshBasicMaterial({
+                color: isPink ? 0xF9A8D4 : 0xD4A853,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+            const mesh = new THREE.Mesh(geoTypes[Math.floor(Math.random() * geoTypes.length)], mat);
+            
+            mesh.position.set(
+                (Math.random() - 0.5) * 60, 
+                Math.random() * 10, 
+                (Math.random() - 0.5) * 40 - 10
+            );
+            
+            mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+            const scale = Math.random() * 1.5 + 0.5;
+            mesh.scale.set(scale, scale, scale);
+            
+            mesh.userData = {
+                rx: (Math.random() - 0.5) * 0.02,
+                ry: (Math.random() - 0.5) * 0.02
+            };
+            
+            group.add(mesh);
+        }
+        scene.add(group);
+
+        // Interaction Variables
+        let mouseX = 0; let mouseY = 0;
+        let scrollY = window.scrollY; let targetScrollY = window.scrollY;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) - 0.5;
+            mouseY = (event.clientY / window.innerHeight) - 0.5;
+        });
+
+        window.addEventListener('scroll', () => { targetScrollY = window.scrollY; });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            scrollY += (targetScrollY - scrollY) * 0.05;
+
+            // Endless driving retro grid effect
+            const speed = time * 3;
+            grid.position.z = (speed % (150 / 40)); 
+            
+            // Add wave distortion to the grid
+            const pos = grid.geometry.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const z = Math.sin(x * 0.1) * Math.cos(y * 0.1 + time) * 0.5;
+                pos.setZ(i, z);
+            }
+            pos.needsUpdate = true;
+
+            // Rotate Floating Shapes
+            group.children.forEach(mesh => {
+                mesh.rotation.x += mesh.userData.rx;
+                mesh.rotation.y += mesh.userData.ry;
+                mesh.position.y += Math.sin(time * 2 + mesh.position.x) * 0.005; 
+            });
+
+            // Camera Parallax
+            camera.position.x += (mouseX * 4 - camera.position.x) * 0.05;
+            camera.position.y = 1.5 + (mouseY * -2) - (scrollY * 0.002);
+            camera.lookAt(0, 0, 0);
+
+            // Occasional screen minimal jump (Glitch)
+            if (Math.random() > 0.995) {
+                camera.position.x += (Math.random() - 0.5) * 0.3;
+                camera.position.y += (Math.random() - 0.5) * 0.3;
+            }
+
+            renderer.render(scene, camera);
+        }
+          
+// --- Logo Glitch Sequencer (1–9s intervals): static 1–2s > small glitch > static 1–2s > big glitch > stop ---
+(function(){
+    const wrap = document.querySelector('.logo-wrap');
+    if(!wrap) return;
+
+    function rand(min, max){ return Math.random() * (max - min) + min; }
+
+    function clearClasses(){
+        wrap.classList.remove('is-static', 'is-glitch-sm', 'is-glitch-lg');
+        // also clear any inline filter we might have applied
+        wrap.querySelector('.logo')?.style && (wrap.querySelector('.logo').style.filter = '');
+    }
+
+    function runCycle(){
+        clearClasses();
+
+        const static1 = rand(1000, 2000);
+        const static2 = rand(1000, 2000);
+        const smallGlitch = rand(120, 220);
+        const bigGlitch = rand(220, 420);
+
+        // Phase 1: static
+        wrap.classList.add('is-static');
+
+        setTimeout(() => {
+            // Phase 2: small glitch (brief)
+            wrap.classList.remove('is-static');
+            wrap.classList.add('is-glitch-sm');
+
+            setTimeout(() => {
+                // Phase 3: static again
+                wrap.classList.remove('is-glitch-sm');
+                wrap.classList.add('is-static');
+
+                setTimeout(() => {
+                    // Phase 4: BIG glitch (brief)
+                    wrap.classList.remove('is-static');
+                    wrap.classList.add('is-glitch-lg');
+
+                    setTimeout(() => {
+                        // End
+                        clearClasses();
+
+                        // Next run in 1–9 seconds
+                        const next = rand(1000, 9000);
+                        setTimeout(runCycle, next);
+                    }, bigGlitch);
+
+                }, static2);
+
+            }, smallGlitch);
+
+        }, static1);
+    }
+
+    // Start in 1–3 seconds so it doesn't immediately distract on load
+    setTimeout(runCycle, rand(1000, 3000));
+})();
+
+animate();
+    </script>
+    
+</body>
+</html>
