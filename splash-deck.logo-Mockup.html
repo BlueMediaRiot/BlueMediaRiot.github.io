@@ -250,7 +250,6 @@
     position: relative;
     display: inline-block;
     line-height: 0;
-            overflow: hidden;
     /* Provide a mask source for pseudo-elements (set from HTML/JS if needed) */
     --logo-mask: none;
 }
@@ -283,13 +282,13 @@
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
-    H0% 100%;
-    H0% 100%;
+    -webkit-mask-size: contain;
+    mask-size: contain;
 }
 
 /* STATIC state (1–2s bursts) */
 .logo-wrap.is-static::after{
-    opacity: 0.75;
+    opacity: 0.25;
     animation: logo-static 140ms steps(2) infinite;
 }
 
@@ -913,8 +912,8 @@
     function runCycle(){
         clearClasses();
 
-        const static1 = rand(1000, 2000);
-        const static2 = rand(1000, 2000);
+        const static1 = rand(200, 300);
+        const static2 = rand(200, 310);
         const smallGlitch = rand(120, 220);
         const bigGlitch = rand(220, 420);
 
